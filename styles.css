@@ -1,8 +1,44 @@
-/*
+/* LLM Flashcard Generator Plugin Styles */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Ribbon icon styling */
+.llm-flashcard-generator-ribbon-class {
+  color: var(--text-normal);
+}
 
-If your plugin does not need CSS, delete this file.
+.llm-flashcard-generator-ribbon-class:hover {
+  color: var(--text-accent);
+}
 
-*/
+/* Status bar styling */
+.status-bar-item.llm-flashcard-error {
+  color: var(--text-error);
+}
+
+.status-bar-item.llm-flashcard-generating {
+  color: var(--text-accent);
+  animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal styling improvements */
+.modal-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Settings improvements */
+.setting-item-description {
+  color: var(--text-muted);
+  font-size: 0.875em;
+  margin-bottom: 1em;
+}

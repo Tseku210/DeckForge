@@ -1,134 +1,590 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
+import {
+	FlashcardPluginSettings,
+	DEFAULT_SETTINGS,
+	CardType,
+	GenerationOptions,
+	LLMError,
+} from "./types";
+import { FlashcardSettingTab } from "./settings-tab";
+import { LLMServiceManager } from "./llm-service-manager";
+import {
+	GenerationOptionsModal,
+	GenerationModalOptions,
+} from "./generation-modal";
+import { FlashcardGenerator } from "./flashcard-generator";
+import { FileManager } from "./file-manager";
+import { ContentProcessor } from "./content-processor";
+import { InputValidator } from "./input-validator";
+import { ErrorHandler } from "./error-handler";
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class LLMFlashcardGeneratorPlugin extends Plugin {
+	settings: FlashcardPluginSettings;
+	llmManager: LLMServiceManager;
+	statusBarItem: HTMLElement;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+		// Initialize LLM service manager
+		this.llmManager = new LLMServiceManager();
+		this.initializeLLMProviders();
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+		// Add ribbon icon for flashcard generation
+		const ribbonIconEl = this.addRibbonIcon(
+			"brain",
+			"Generate Flashcards",
+			() => {
+				this.generateFlashcards();
 			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
+		);
+		ribbonIconEl.addClass("llm-flashcard-generator-ribbon-class");
+
+		// Add main flashcard generation command
 		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
+			id: "generate-flashcards",
+			name: "Generate flashcards from current note",
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
+				this.generateFlashcards(editor, view);
+			},
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		// Add settings tab for plugin configuration
+		this.addSettingTab(new FlashcardSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		// Add status bar item
+		this.statusBarItem = this.addStatusBarItem();
+		this.updateStatusBar("ready");
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const loadedData = await this.loadData();
+		this.settings = this.validateAndMigrateSettings(loadedData);
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
+		// Validate settings before saving
+		const validatedSettings = this.validateSettings(this.settings);
+		await this.saveData(validatedSettings);
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
+		// Reinitialize LLM providers when settings change
+		if (this.llmManager) {
+			this.initializeLLMProviders();
+		}
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	private validateAndMigrateSettings(
+		loadedData: any
+	): FlashcardPluginSettings {
+		// Start with default settings
+		let settings = Object.assign({}, DEFAULT_SETTINGS);
+
+		if (loadedData) {
+			// Merge loaded data with defaults, ensuring all required fields exist
+			settings = Object.assign(settings, loadedData);
+
+			// Validate and migrate settings structure
+			settings = this.migrateSettings(settings);
+		}
+
+		return this.validateSettings(settings);
 	}
-}
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	private migrateSettings(settings: any): FlashcardPluginSettings {
+		// Handle migration from older versions
+		// For now, just ensure the structure matches current version
 
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
+		// Ensure providers object exists
+		if (!settings.providers || typeof settings.providers !== "object") {
+			settings.providers = {};
+		}
+
+		// Ensure activeProvider is a string
+		if (typeof settings.activeProvider !== "string") {
+			settings.activeProvider = "";
+		}
+
+		// Ensure defaultOptions exists and has correct structure
+		if (
+			!settings.defaultOptions ||
+			typeof settings.defaultOptions !== "object"
+		) {
+			settings.defaultOptions = DEFAULT_SETTINGS.defaultOptions;
+		} else {
+			// Validate defaultOptions fields
+			if (
+				settings.defaultOptions.maxCards !== undefined &&
+				(typeof settings.defaultOptions.maxCards !== "number" ||
+					settings.defaultOptions.maxCards < 1)
+			) {
+				delete settings.defaultOptions.maxCards;
+			}
+			if (!Array.isArray(settings.defaultOptions.cardTypes)) {
+				settings.defaultOptions.cardTypes =
+					DEFAULT_SETTINGS.defaultOptions.cardTypes;
+			}
+			if (!Array.isArray(settings.defaultOptions.tags)) {
+				settings.defaultOptions.tags =
+					DEFAULT_SETTINGS.defaultOptions.tags;
+			}
+		}
+
+		// Ensure outputPreferences exists and has correct structure
+		if (
+			!settings.outputPreferences ||
+			typeof settings.outputPreferences !== "object"
+		) {
+			settings.outputPreferences = DEFAULT_SETTINGS.outputPreferences;
+		} else {
+			const validPlacements = ["cursor", "bottom", "separate-file"];
+			if (
+				!validPlacements.includes(
+					settings.outputPreferences.defaultPlacement
+				)
+			) {
+				settings.outputPreferences.defaultPlacement =
+					DEFAULT_SETTINGS.outputPreferences.defaultPlacement;
+			}
+			if (
+				typeof settings.outputPreferences.fileNamingPattern !== "string"
+			) {
+				settings.outputPreferences.fileNamingPattern =
+					DEFAULT_SETTINGS.outputPreferences.fileNamingPattern;
+			}
+			if (!Array.isArray(settings.outputPreferences.defaultTags)) {
+				settings.outputPreferences.defaultTags =
+					DEFAULT_SETTINGS.outputPreferences.defaultTags;
+			}
+		}
+
+		// Ensure promptTemplates exists
+		if (
+			!settings.promptTemplates ||
+			typeof settings.promptTemplates !== "object"
+		) {
+			settings.promptTemplates = DEFAULT_SETTINGS.promptTemplates;
+		}
+
+		return settings;
 	}
 
-	display(): void {
-		const {containerEl} = this;
+	private validateSettings(
+		settings: FlashcardPluginSettings
+	): FlashcardPluginSettings {
+		// Validate provider configurations
+		Object.keys(settings.providers).forEach((providerName) => {
+			const provider = settings.providers[providerName];
+			if (!provider || typeof provider !== "object") {
+				delete settings.providers[providerName];
+				return;
+			}
 
-		containerEl.empty();
+			// Ensure provider has required structure
+			if (typeof provider.apiKey !== "string") provider.apiKey = "";
+			if (typeof provider.endpoint !== "string") provider.endpoint = "";
+			if (typeof provider.model !== "string") provider.model = "";
+			if (
+				!provider.customHeaders ||
+				typeof provider.customHeaders !== "object"
+			) {
+				provider.customHeaders = {};
+			}
+		});
 
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+		// Validate activeProvider exists in providers
+		if (
+			settings.activeProvider &&
+			!settings.providers[settings.activeProvider]
+		) {
+			settings.activeProvider = "";
+		}
+
+		// Validate card types are valid enum values
+		const validCardTypes = Object.values(CardType);
+		settings.defaultOptions.cardTypes =
+			settings.defaultOptions.cardTypes.filter((cardType) =>
+				validCardTypes.includes(cardType)
+			);
+
+		// Ensure at least one card type is selected
+		if (settings.defaultOptions.cardTypes.length === 0) {
+			settings.defaultOptions.cardTypes = [CardType.OneWay];
+		}
+
+		// Validate maxCards is within reasonable bounds if it exists
+		if (settings.defaultOptions.maxCards !== undefined) {
+			if (settings.defaultOptions.maxCards < 1) {
+				settings.defaultOptions.maxCards = 1;
+			} else if (settings.defaultOptions.maxCards > 100) {
+				settings.defaultOptions.maxCards = 100;
+			}
+		}
+
+		return settings;
+	}
+
+	/**
+	 * Initialize LLM providers from settings
+	 */
+	private initializeLLMProviders(): void {
+		if (!this.llmManager) return;
+
+		try {
+			this.llmManager.initializeFromSettings(
+				this.settings.providers,
+				this.settings.activeProvider
+			);
+			this.updateStatusBar("ready");
+		} catch (error) {
+			console.error("Failed to initialize LLM providers:", error);
+			new Notice(
+				"Failed to initialize LLM providers. Check your configuration."
+			);
+			this.updateStatusBar("error");
+		}
+	}
+
+	/**
+	 * Update status bar with current plugin state
+	 */
+	private updateStatusBar(
+		status: "ready" | "generating" | "error" | "disabled"
+	): void {
+		if (!this.statusBarItem) return;
+
+		switch (status) {
+			case "ready":
+				if (
+					this.settings.activeProvider &&
+					this.settings.providers[this.settings.activeProvider]
+				) {
+					this.statusBarItem.setText(
+						`🧠 ${this.settings.activeProvider}`
+					);
+					this.statusBarItem.title = `LLM Flashcard Generator - Ready (${this.settings.activeProvider})`;
+					this.statusBarItem.removeClass("llm-flashcard-error");
+					this.statusBarItem.removeClass("llm-flashcard-generating");
+				} else {
+					this.statusBarItem.setText("🧠 No Provider");
+					this.statusBarItem.title =
+						"LLM Flashcard Generator - No provider configured";
+					this.statusBarItem.addClass("llm-flashcard-error");
+				}
+				break;
+			case "generating":
+				this.statusBarItem.setText("🧠 Generating...");
+				this.statusBarItem.title =
+					"LLM Flashcard Generator - Generating flashcards...";
+				this.statusBarItem.removeClass("llm-flashcard-error");
+				this.statusBarItem.addClass("llm-flashcard-generating");
+				break;
+			case "error":
+				this.statusBarItem.setText("🧠 Error");
+				this.statusBarItem.title =
+					"LLM Flashcard Generator - Configuration error";
+				this.statusBarItem.addClass("llm-flashcard-error");
+				this.statusBarItem.removeClass("llm-flashcard-generating");
+				break;
+			case "disabled":
+				this.statusBarItem.setText("🧠 Disabled");
+				this.statusBarItem.title = "LLM Flashcard Generator - Disabled";
+				this.statusBarItem.addClass("llm-flashcard-error");
+				this.statusBarItem.removeClass("llm-flashcard-generating");
+				break;
+		}
+	}
+
+	/**
+	 * Main method to generate flashcards from current note
+	 */
+	async generateFlashcards(editor?: Editor, view?: MarkdownView) {
+		// Check if we have an active editor and view
+		if (!editor || !view) {
+			const activeView =
+				this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (!activeView) {
+				ErrorHandler.handleContentValidationError(
+					"Please open a note to generate flashcards from"
+				);
+				return;
+			}
+			editor = activeView.editor;
+			view = activeView;
+		}
+
+		// Check if LLM provider is configured
+		if (
+			!this.settings.activeProvider ||
+			!this.settings.providers[this.settings.activeProvider]
+		) {
+			ErrorHandler.handleConfigurationError(
+				"Please configure an LLM provider in settings first"
+			);
+			return;
+		}
+
+		// Get current note content and validate it
+		const content = editor.getValue();
+		const contentValidation = InputValidator.validateNoteContent(content);
+
+		if (!contentValidation.isValid) {
+			ErrorHandler.handleContentValidationError(
+				contentValidation.errors.join(". ")
+			);
+			if (
+				contentValidation.suggestions &&
+				contentValidation.suggestions.length > 0
+			) {
+				ErrorHandler.showInfo(
+					`💡 ${contentValidation.suggestions.join(". ")}`,
+					8000
+				);
+			}
+			return;
+		}
+
+		// Show warnings if any
+		if (contentValidation.warnings.length > 0) {
+			ErrorHandler.showWarning(
+				contentValidation.warnings.join(". "),
+				6000
+			);
+			if (
+				contentValidation.suggestions &&
+				contentValidation.suggestions.length > 0
+			) {
+				ErrorHandler.showInfo(
+					`💡 ${contentValidation.suggestions.join(". ")}`,
+					6000
+				);
+			}
+		}
+
+		// Validate provider configuration
+		const providerConfig =
+			this.settings.providers[this.settings.activeProvider];
+		const configValidation = InputValidator.validateProviderConfig(
+			providerConfig,
+			this.settings.activeProvider
+		);
+
+		if (!configValidation.isValid) {
+			ErrorHandler.handleConfigurationError(
+				configValidation.errors.join(". "),
+				this.settings.activeProvider
+			);
+			return;
+		}
+
+		// Show generation options modal
+		const modal = new GenerationOptionsModal(
+			this.app,
+			(options: GenerationModalOptions) => {
+				this.executeFlashcardGeneration(
+					content,
+					options,
+					editor!,
+					view!
+				);
+			},
+			this.settings.defaultOptions,
+			this.settings.outputPreferences.defaultPlacement,
+			this.settings.outputPreferences.defaultTags
+		);
+		modal.open();
+	}
+
+	/**
+	 * Execute the actual flashcard generation process
+	 */
+	private async executeFlashcardGeneration(
+		content: string,
+		options: GenerationModalOptions,
+		editor: Editor,
+		view: MarkdownView
+	) {
+		// Prepare generation options
+		const generationOptions: GenerationOptions = {
+			maxCards: options.maxCards,
+			cardTypes: options.cardTypes,
+			customPrompt: options.customPrompt,
+			tags: options.tags,
+		};
+
+		// Validate generation options
+		const optionsValidation =
+			InputValidator.validateGenerationOptions(generationOptions);
+		if (!optionsValidation.isValid) {
+			ErrorHandler.handleFlashcardGenerationError(
+				optionsValidation.errors.join(". "),
+				"options validation"
+			);
+			return;
+		}
+
+		// Show warnings for generation options if any
+		if (optionsValidation.warnings.length > 0) {
+			ErrorHandler.showWarning(
+				`Generation options: ${optionsValidation.warnings.join(". ")}`,
+				6000
+			);
+		}
+
+		// Validate placement option
+		const placementValidation = InputValidator.validatePlacementOption(
+			options.placement
+		);
+		if (!placementValidation.isValid) {
+			ErrorHandler.handleFlashcardGenerationError(
+				placementValidation.error || "Invalid placement option",
+				"placement validation"
+			);
+			return;
+		}
+
+		// Update status bar to show generation in progress
+		this.updateStatusBar("generating");
+
+		// Create progress notice with steps
+		let statusNotice = new Notice("Processing content...", 0);
+
+		try {
+			// Get the active LLM provider
+			const provider = this.llmManager.getActiveProvider();
+			if (!provider) {
+				// Debug information
+				console.log(
+					"Debug: Active provider name:",
+					this.settings.activeProvider
+				);
+				console.log(
+					"Debug: Available providers:",
+					this.llmManager.getProviderNames()
+				);
+				console.log(
+					"Debug: Provider status:",
+					this.llmManager.getProviderStatus()
+				);
+				throw new Error(
+					`No active LLM provider available. Active: ${
+						this.settings.activeProvider
+					}, Available: ${this.llmManager
+						.getProviderNames()
+						.join(", ")}`
+				);
+			}
+
+			// Process content
+			statusNotice.setMessage("Processing note content...");
+			const contentProcessor = new ContentProcessor();
+			const processedContent = await contentProcessor.processContent(
+				content,
+				view.file?.basename || "Untitled"
+			);
+
+			// Generate flashcards
+			statusNotice.setMessage(
+				`Generating flashcards with ${this.settings.activeProvider}...`
+			);
+			const generator = new FlashcardGenerator(provider);
+			const result = await generator.generateFlashcards(
+				processedContent.cleanedContent,
+				generationOptions
+			);
+
+			if (!result.success) {
+				throw new Error(
+					result.error || "Failed to generate flashcards"
+				);
+			}
+
+			// Handle file placement
+			statusNotice.setMessage("Placing flashcards...");
+			const fileManager = new FileManager(this.app);
+			const placementResult = await fileManager.placeFlashcards(
+				result.formattedCards || "",
+				editor,
+				view,
+				{
+					placement: options.placement,
+					fileNamingPattern:
+						this.settings.outputPreferences.fileNamingPattern,
+					defaultTags:
+						options.customTags ||
+						this.settings.outputPreferences.defaultTags,
+				}
+			);
+
+			// Hide progress notice and restore status bar
+			statusNotice.hide();
+			this.updateStatusBar("ready");
+
+			if (placementResult.success) {
+				const cardsCount = result.metadata?.cardsGenerated || 0;
+				let message = `✅ Generated ${cardsCount} flashcard${
+					cardsCount !== 1 ? "s" : ""
+				}`;
+
+				if (
+					options.placement === "separate-file" &&
+					placementResult.filePath
+				) {
+					message += ` in ${placementResult.filePath}`;
+				}
+
+				// Show detailed success message with metadata
+				if (result.metadata?.tokensUsed) {
+					message += `\n📊 Usage: ${result.metadata.tokensUsed} tokens`;
+					if (result.metadata.model) {
+						message += ` (${result.metadata.model})`;
+					}
+				}
+
+				// Add tag information if tags were used
+				if (options.tags && options.tags.length > 0) {
+					message += `\n🏷️ Tags: ${options.tags.join(", ")}`;
+				}
+
+				new Notice(message, 8000);
+			} else {
+				throw new Error(
+					placementResult.error || "Failed to place flashcards"
+				);
+			}
+		} catch (error) {
+			// Hide progress notice and restore status bar
+			statusNotice.hide();
+			this.updateStatusBar("ready");
+
+			// Handle different types of errors appropriately
+			if (error && typeof error === "object" && "type" in error) {
+				// Handle LLM-specific errors
+				ErrorHandler.handleLLMError(
+					error as LLMError,
+					this.settings.activeProvider
+				);
+			} else if (error instanceof Error) {
+				// Handle general errors
+				ErrorHandler.handleFlashcardGenerationError(
+					error.message,
+					"generation process"
+				);
+			} else {
+				// Handle unknown errors
+				ErrorHandler.handleFlashcardGenerationError(
+					"An unexpected error occurred",
+					"generation process"
+				);
+			}
+
+			// Log error for debugging
+			ErrorHandler.logError(error, "executeFlashcardGeneration", {
+				provider: this.settings.activeProvider,
+				contentLength: content.length,
+				options: generationOptions,
+			});
+		}
 	}
 }
