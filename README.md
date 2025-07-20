@@ -1,6 +1,12 @@
 # LLM Flashcard Generator for Obsidian
 
 Generate flashcards from your notes using LLM providers (OpenAI, Anthropic, Google Gemini). Compatible with the Spaced Repetition plugin.
+<img width="1800" height="1169" alt="image" src="https://github.com/user-attachments/assets/276dcd1a-6d17-4616-b585-944135b87ec9" />
+<img width="1800" height="1169" alt="image" src="https://github.com/user-attachments/assets/5e697b1c-57b0-4e91-bdf0-ee63af0a2598" />
+<img width="1800" height="1169" alt="image" src="https://github.com/user-attachments/assets/f95ab9c5-dc3f-45d4-8e9c-f9e0c6c9dba0" />
+
+
+
 
 ## Features
 
