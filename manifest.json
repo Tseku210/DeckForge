@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Generate flashcards from your notes using any LLM provider. Supports OpenAI, Anthropic, Gemini, and custom providers with Spaced Repetition plugin compatibility.",
-	"author": "Tseku",
+	"author": "Tseku210",
 	"authorUrl": "https://github.com/Tseku210",
 	"isDesktopOnly": false
 }
