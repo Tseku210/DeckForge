@@ -124,6 +124,7 @@ export class FlashcardValidator {
       errors.push('Formatted content must contain valid spaced repetition syntax (::, :::, ?, or ==)');
     }
 
+
     return {
       isValid: errors.length === 0,
       errors

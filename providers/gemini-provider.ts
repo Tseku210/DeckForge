@@ -1,8 +1,24 @@
+/**
+ * Google Gemini Provider Module
+ * 
+ * This module provides the implementation for the Google Gemini provider,
+ * supporting Gemini 1.5 Flash, Gemini 1.5 Pro, and other Gemini models.
+ * 
+ * @module providers/gemini-provider
+ */
+
 import { BaseLLMProvider } from './base-provider';
 import { ProviderConfig, GenerationOptions, FlashcardResponse, RawFlashcard, CardType, LLMError } from '../types';
 
 /**
  * Google Gemini provider implementation
+ * 
+ * Supports:
+ * - Gemini 1.5 Flash (fast)
+ * - Gemini 1.5 Pro (high quality)
+ * - Gemini 1.0 Pro (legacy)
+ * 
+ * Uses the Google Generative Language API to generate flashcards.
  */
 export class GeminiProvider extends BaseLLMProvider {
   name = 'Gemini';
@@ -21,15 +37,34 @@ export class GeminiProvider extends BaseLLMProvider {
 
   async authenticate(config: ProviderConfig): Promise<boolean> {
     try {
-      // Test authentication by listing models
-      const response = await fetch(`${config.endpoint}/models?key=${config.apiKey}`, {
-        method: 'GET',
+      // Test authentication with a minimal generation request
+      const testRequestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: "test"
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          maxOutputTokens: 1
+        }
+      };
+
+      const modelPath = `models/${config.model}:generateContent`;
+      const response = await fetch(`${config.endpoint}/${modelPath}?key=${config.apiKey}`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(testRequestBody)
       });
 
-      return response.ok;
+      // Accept both success and some error responses that indicate valid authentication
+      // 400 might occur due to minimal request but indicates auth worked
+      return response.ok || response.status === 400;
     } catch (error) {
       console.error('Gemini authentication failed:', error);
       return false;

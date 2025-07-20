@@ -22,6 +22,12 @@ export class FileManager {
 
   /**
    * Main method to handle flashcard placement based on options
+   * 
+   * @param formattedContent - Formatted flashcard content to place
+   * @param editor - Obsidian editor instance
+   * @param view - Markdown view instance
+   * @param options - Placement options (location, file naming, tags)
+   * @returns Promise with insertion result
    */
   async placeFlashcards(
     formattedContent: string,
@@ -61,6 +67,10 @@ export class FileManager {
 
   /**
    * Inserts flashcards at the current cursor position
+   * 
+   * @param formattedContent - Formatted flashcard content to insert
+   * @param editor - Obsidian editor instance
+   * @returns Promise with insertion result
    */
   async insertAtCursor(formattedContent: string, editor?: Editor): Promise<InsertionResult> {
     if (!editor) {
@@ -110,6 +120,11 @@ export class FileManager {
 
   /**
    * Inserts flashcards at the bottom of the current note
+   * 
+   * @param formattedContent - Formatted flashcard content to insert
+   * @param editor - Obsidian editor instance
+   * @param view - Markdown view instance (unused but kept for API consistency)
+   * @returns Promise with insertion result
    */
   async insertAtBottom(
     formattedContent: string,
@@ -163,6 +178,11 @@ export class FileManager {
 
   /**
    * Creates a separate file for flashcards with proper naming and linking
+   * 
+   * @param formattedContent - Formatted flashcard content to save
+   * @param view - Markdown view instance
+   * @param options - File manager options for naming and tags
+   * @returns Promise with insertion result
    */
   async createSeparateFile(
     formattedContent: string,
@@ -214,6 +234,11 @@ export class FileManager {
 
   /**
    * Prepares content for inline insertion with proper spacing
+   * 
+   * @param content - Formatted flashcard content to insert
+   * @param currentLine - Current line text at cursor position
+   * @param cursorPosition - Cursor position within the line
+   * @returns Properly formatted text with appropriate spacing
    */
   private prepareInlineInsertion(content: string, currentLine: string, cursorPosition: number): string {
     let insertionText = '';
@@ -241,6 +266,10 @@ export class FileManager {
 
   /**
    * Generates the flashcard file name based on the pattern
+   * 
+   * @param sourceFile - Source file to generate name from
+   * @param pattern - Optional naming pattern with {filename} placeholder
+   * @returns Generated filename for flashcards
    */
   private generateFlashcardFileName(sourceFile: TFile, pattern?: string): string {
     const defaultPattern = '{filename}-fcards.md';
@@ -252,6 +281,10 @@ export class FileManager {
 
   /**
    * Gets the full path for the flashcard file in the same directory as source
+   * 
+   * @param sourceFile - Source file to determine directory
+   * @param fileName - Generated flashcard file name
+   * @returns Full path for the flashcard file
    */
   private getFlashcardFilePath(sourceFile: TFile, fileName: string): string {
     const sourceDir = sourceFile.parent?.path || '';
@@ -260,6 +293,11 @@ export class FileManager {
 
   /**
    * Creates the content for the flashcard file
+   * 
+   * @param flashcardContent - Formatted flashcard content to include
+   * @param sourceFileName - Name of the source file
+   * @param defaultTags - Tags to apply to the flashcards
+   * @returns Complete content for the flashcard file
    */
   private createFlashcardFileContent(
     flashcardContent: string,
@@ -298,6 +336,10 @@ export class FileManager {
 
   /**
    * Adds a link to the flashcard file in the source note
+   * 
+   * @param view - Markdown view instance
+   * @param flashcardFile - The created flashcard file
+   * @returns Promise that resolves when the link is added
    */
   private async addFlashcardLink(view: MarkdownView, flashcardFile: TFile): Promise<void> {
     const editor = view.editor;
@@ -326,6 +368,11 @@ export class FileManager {
 
   /**
    * Handles the case where a flashcard file already exists
+   * 
+   * @param formattedContent - New flashcard content to append
+   * @param view - Markdown view instance
+   * @param options - File manager options
+   * @returns Promise with insertion result
    */
   private async handleExistingFlashcardFile(
     formattedContent: string,
@@ -367,6 +414,10 @@ export class FileManager {
 
   /**
    * Appends new flashcards to existing flashcard file content
+   * 
+   * @param existingContent - Current content of the flashcard file
+   * @param newContent - New flashcard content to append
+   * @returns Updated file content with appended flashcards
    */
   private appendToExistingFlashcardFile(existingContent: string, newContent: string): string {
     // Add separator and new content
@@ -382,6 +433,9 @@ export class FileManager {
 
   /**
    * Validates that inline insertion won't disrupt existing flashcards
+   * 
+   * @param editor - Obsidian editor instance
+   * @returns Object with validation result and optional warning
    */
   private validateInlineInsertion(editor: Editor): { canInsert: boolean; warning?: string } {
     const cursor = editor.getCursor();
@@ -403,6 +457,10 @@ export class FileManager {
 
   /**
    * Gets information about the current file and cursor position
+   * 
+   * @param editor - Obsidian editor instance (optional)
+   * @param view - Markdown view instance (optional)
+   * @returns Object with context information about the current editing state
    */
   getInsertionContext(editor?: Editor, view?: MarkdownView): {
     hasEditor: boolean;

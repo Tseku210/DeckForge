@@ -291,14 +291,5 @@ export class LLMServiceManager {
     }
   }
 
-  /**
-   * Create a standardized error object
-   */
-  private createError(type: LLMError['type'], message: string, details?: any): LLMError {
-    return {
-      type,
-      message,
-      details
-    };
-  }
+  // Using ErrorHandler.createError instead of this private method
 }

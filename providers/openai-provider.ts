@@ -1,8 +1,25 @@
+/**
+ * OpenAI Provider Module
+ * 
+ * This module provides the implementation for the OpenAI provider,
+ * supporting GPT-3.5, GPT-4, and other OpenAI models.
+ * 
+ * @module providers/openai-provider
+ */
+
 import { BaseLLMProvider } from './base-provider';
 import { ProviderConfig, GenerationOptions, FlashcardResponse, RawFlashcard, CardType, LLMError } from '../types';
 
 /**
  * OpenAI provider implementation for GPT models
+ * 
+ * Supports:
+ * - GPT-3.5 Turbo
+ * - GPT-4
+ * - GPT-4 Turbo
+ * - GPT-4o
+ * 
+ * Uses the OpenAI Chat Completions API to generate flashcards.
  */
 export class OpenAIProvider extends BaseLLMProvider {
   name = 'OpenAI';
@@ -112,7 +129,7 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   private buildPrompt(content: string, options: GenerationOptions): string {
-    const maxCards = options.maxCards || 5;
+    const maxCards = options.maxCards;
     const cardTypes = options.cardTypes || [CardType.OneWay];
     const tags = options.tags || [];
 
@@ -149,7 +166,7 @@ Card type guidelines:
 - "multiline": Multi-line question or answer
 - "cloze": Fill-in-the-blank format with ==text== to be hidden
 
-Make sure the JSON is valid and contains exactly ${maxCards} flashcards.`;
+Make sure the JSON is valid and contains ${maxCards ? 'exactly ' + maxCards : 'thorough'} flashcards.`;
 
     return prompt;
   }

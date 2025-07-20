@@ -1,3 +1,13 @@
+/**
+ * LLM Flashcard Generator Plugin for Obsidian
+ * 
+ * This plugin generates flashcards from note content using various LLM providers
+ * (OpenAI, Anthropic, Google Gemini) and formats them for the Spaced Repetition plugin.
+ * 
+ * @author Tseku210
+ * @version 1.0.0
+ */
+
 import { Editor, MarkdownView, Notice, Plugin } from "obsidian";
 import {
 	FlashcardPluginSettings,
@@ -18,12 +28,26 @@ import { ContentProcessor } from "./content-processor";
 import { InputValidator } from "./input-validator";
 import { ErrorHandler } from "./error-handler";
 
+/**
+ * LLM Flashcard Generator Plugin
+ * 
+ * This plugin generates flashcards from note content using various LLM providers
+ * (OpenAI, Anthropic, Google Gemini) and formats them for the Spaced Repetition plugin.
+ */
 export default class LLMFlashcardGeneratorPlugin extends Plugin {
+	/** Plugin settings */
 	settings: FlashcardPluginSettings;
+
+	/** LLM service manager for handling provider interactions */
 	llmManager: LLMServiceManager;
+
+	/** Status bar item for displaying plugin status */
 	statusBarItem: HTMLElement;
 
 	async onload() {
+		console.log('Loading LLM Flashcard Generator plugin');
+
+		// Load settings first
 		await this.loadSettings();
 
 		// Initialize LLM service manager
@@ -49,21 +73,99 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 			},
 		});
 
+		// Add command to test LLM provider connection
+		this.addCommand({
+			id: "test-llm-connection",
+			name: "Test LLM provider connection",
+			callback: () => {
+				this.testLLMConnection();
+			},
+		});
+
 		// Add settings tab for plugin configuration
 		this.addSettingTab(new FlashcardSettingTab(this.app, this));
 
 		// Add status bar item
 		this.statusBarItem = this.addStatusBarItem();
 		this.updateStatusBar("ready");
+
+		console.log('LLM Flashcard Generator plugin loaded');
 	}
 
-	onunload() {}
+	onunload() {
+		// Clean up resources and event listeners
+		this.statusBarItem.setText('');
+		console.log('LLM Flashcard Generator plugin unloaded');
+	}
 
+	/**
+	 * Test the connection to the active LLM provider
+	 */
+	async testLLMConnection() {
+		// Check if LLM provider is configured
+		if (!this.settings.activeProvider || !this.settings.providers[this.settings.activeProvider]) {
+			ErrorHandler.handleConfigurationError("Please configure an LLM provider in settings first");
+			return;
+		}
+
+		// Show testing notice
+		const statusNotice = new Notice(`Testing connection to ${this.settings.activeProvider}...`, 0);
+
+		try {
+			// Get the active provider
+			const provider = this.llmManager.getActiveProvider();
+			if (!provider) {
+				throw new Error(`No active LLM provider available: ${this.settings.activeProvider}`);
+			}
+
+			// Test authentication
+			const authResult = await this.llmManager.testProviderAuthentication(this.settings.activeProvider);
+
+			// Hide the status notice
+			statusNotice.hide();
+
+			if (authResult) {
+				ErrorHandler.showSuccess(`✅ Successfully connected to ${this.settings.activeProvider}`,
+					"Your provider is properly configured and ready to generate flashcards.");
+			} else {
+				ErrorHandler.handleLLMError({
+					type: 'authentication',
+					message: `Authentication failed for ${this.settings.activeProvider}`
+				}, this.settings.activeProvider);
+			}
+		} catch (error) {
+			// Hide the status notice
+			statusNotice.hide();
+
+			// Handle error
+			if (error && typeof error === "object" && "type" in error) {
+				ErrorHandler.handleLLMError(error as LLMError, this.settings.activeProvider);
+			} else if (error instanceof Error) {
+				ErrorHandler.handleConfigurationError(error.message, this.settings.activeProvider);
+			} else {
+				ErrorHandler.handleConfigurationError("An unexpected error occurred", this.settings.activeProvider);
+			}
+
+			// Log error for debugging
+			ErrorHandler.logError(error, "testLLMConnection", {
+				provider: this.settings.activeProvider
+			});
+		}
+	}
+
+	/**
+	 * Load plugin settings from Obsidian data storage
+	 * Validates and migrates settings to ensure compatibility
+	 */
 	async loadSettings() {
 		const loadedData = await this.loadData();
 		this.settings = this.validateAndMigrateSettings(loadedData);
 	}
 
+	/**
+	 * Save plugin settings to Obsidian data storage
+	 * Validates settings before saving and reinitializes providers
+	 */
 	async saveSettings() {
 		// Validate settings before saving
 		const validatedSettings = this.validateSettings(this.settings);
@@ -75,6 +177,13 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Validates and migrates loaded settings data
+	 * Ensures backward compatibility with older plugin versions
+	 * 
+	 * @param loadedData - Raw data loaded from Obsidian storage
+	 * @returns Validated and migrated settings object
+	 */
 	private validateAndMigrateSettings(
 		loadedData: any
 	): FlashcardPluginSettings {
@@ -92,6 +201,13 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 		return this.validateSettings(settings);
 	}
 
+	/**
+	 * Migrates settings from older versions to current format
+	 * Ensures all required fields exist with proper types
+	 * 
+	 * @param settings - Settings object to migrate
+	 * @returns Migrated settings object
+	 */
 	private migrateSettings(settings: any): FlashcardPluginSettings {
 		// Handle migration from older versions
 		// For now, just ensure the structure matches current version
@@ -170,6 +286,13 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 		return settings;
 	}
 
+	/**
+	 * Validates settings to ensure all fields have proper types and values
+	 * Corrects invalid settings with sensible defaults
+	 * 
+	 * @param settings - Settings object to validate
+	 * @returns Validated settings object
+	 */
 	private validateSettings(
 		settings: FlashcardPluginSettings
 	): FlashcardPluginSettings {
@@ -298,6 +421,10 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 
 	/**
 	 * Main method to generate flashcards from current note
+	 * Validates content and provider configuration before showing generation options
+	 * 
+	 * @param editor - Obsidian editor instance (optional)
+	 * @param view - Markdown view instance (optional)
 	 */
 	async generateFlashcards(editor?: Editor, view?: MarkdownView) {
 		// Check if we have an active editor and view
@@ -398,6 +525,12 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 
 	/**
 	 * Execute the actual flashcard generation process
+	 * Orchestrates the content processing, LLM generation, and file placement
+	 * 
+	 * @param content - Note content to generate flashcards from
+	 * @param options - Generation options from the modal
+	 * @param editor - Obsidian editor instance
+	 * @param view - Markdown view instance
 	 */
 	private async executeFlashcardGeneration(
 		content: string,
@@ -468,8 +601,7 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 					this.llmManager.getProviderStatus()
 				);
 				throw new Error(
-					`No active LLM provider available. Active: ${
-						this.settings.activeProvider
+					`No active LLM provider available. Active: ${this.settings.activeProvider
 					}, Available: ${this.llmManager
 						.getProviderNames()
 						.join(", ")}`
@@ -523,9 +655,8 @@ export default class LLMFlashcardGeneratorPlugin extends Plugin {
 
 			if (placementResult.success) {
 				const cardsCount = result.metadata?.cardsGenerated || 0;
-				let message = `✅ Generated ${cardsCount} flashcard${
-					cardsCount !== 1 ? "s" : ""
-				}`;
+				let message = `✅ Generated ${cardsCount} flashcard${cardsCount !== 1 ? "s" : ""
+					}`;
 
 				if (
 					options.placement === "separate-file" &&

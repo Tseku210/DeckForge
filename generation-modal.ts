@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice } from 'obsidian';
+import { App, Modal, Setting } from 'obsidian';
 import { CardType, GenerationOptions } from './types';
 import { InputValidator } from './input-validator';
 import { ErrorHandler } from './error-handler';

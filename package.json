@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "deck-forge-llm-flashcard-generator",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Generate flashcards from your notes using any LLM provider. Supports OpenAI, Anthropic, Gemini, and custom providers with Spaced Repetition plugin compatibility.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
@@ -10,8 +10,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": ["obsidian", "plugin", "flashcards", "spaced-repetition", "llm", "ai", "openai", "anthropic", "gemini", "study", "learning"],
+	"author": "Tseku210",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.0.0",

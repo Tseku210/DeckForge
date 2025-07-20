@@ -79,9 +79,13 @@ export class SpacedRepetitionFormatter {
   }
 
   /**
-   * Formats multiple flashcards with proper spacing (no individual card tags)
+   * Formats multiple flashcards with proper spacing
+   * 
+   * @param cards - Array of raw flashcards to format
+   * @param tags - Global tags to apply (used for metadata but not in content)
+   * @returns Formatted flashcard content as string
    */
-  static formatCards(cards: RawFlashcard[], globalTags: string[] = []): string {
+  static formatCards(cards: RawFlashcard[], tags: string[] = []): string {
     if (cards.length === 0) {
       return '';
     }

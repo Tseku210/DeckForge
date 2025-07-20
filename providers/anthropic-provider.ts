@@ -126,11 +126,11 @@ export class AnthropicProvider extends BaseLLMProvider {
   }
 
   private buildPrompt(content: string, options: GenerationOptions): string {
-    const maxCards = options.maxCards || 5;
+    const maxCards = options.maxCards;
     const cardTypes = options.cardTypes || [CardType.OneWay];
     const tags = options.tags || [];
 
-    let prompt = options.customPrompt || `I need you to create ${maxCards} educational flashcards from the following content. `;
+    let prompt = options.customPrompt || `Create ${maxCards} educational flashcards from the following content. `;
 
     prompt += `Generate flashcards of these types: ${cardTypes.join(', ')}. `;
 
@@ -159,11 +159,11 @@ IMPORTANT INSTRUCTIONS:
 
 Card type guidelines:
 - "oneway": Simple question-answer format
-- "bidirectional": Can be tested in both directions  
+- "bidirectional": Can be tested in both directions
 - "multiline": Multi-line question or answer
 - "cloze": Fill-in-the-blank format with ==text== to be hidden
 
-Make sure the JSON is valid and contains exactly ${maxCards} flashcards.`;
+Make sure the JSON is valid and contains ${maxCards ? 'exactly ' + maxCards : 'thorough'} flashcards.`;
 
     return prompt;
   }

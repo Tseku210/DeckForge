@@ -269,7 +269,7 @@ describe('FlashcardValidator', () => {
       const result = FlashcardValidator.validateFormattedFlashcard(card);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Formatted content must contain valid spaced repetition syntax');
+      expect(result.errors[0]).toContain('Formatted content must contain valid spaced repetition');
     });
 
     it('should reject invalid tags', () => {

@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Modal, Notice } from 'obsidian';
 import LLMFlashcardGeneratorPlugin from './main';
-import { FlashcardPluginSettings, CardType } from './types';
+import { CardType } from './types';
 
 export class FlashcardSettingTab extends PluginSettingTab {
   plugin: LLMFlashcardGeneratorPlugin;
@@ -212,7 +212,7 @@ export class FlashcardSettingTab extends PluginSettingTab {
     const cardTypesContainer = containerEl.createDiv('card-types-container');
 
     Object.values(CardType).forEach(cardType => {
-      const setting = new Setting(cardTypesContainer)
+      new Setting(cardTypesContainer)
         .setName(this.getCardTypeDisplayName(cardType))
         .setDesc(this.getCardTypeDescription(cardType))
         .addToggle(toggle => {

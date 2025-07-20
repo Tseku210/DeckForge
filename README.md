@@ -1,94 +1,82 @@
-# Obsidian Sample Plugin
+# LLM Flashcard Generator for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Generate flashcards from your notes using LLM providers (OpenAI, Anthropic, Google Gemini). Compatible with the Spaced Repetition plugin.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Multiple LLM Providers**: OpenAI, Anthropic, Google Gemini
+- **Card Types**: One-way, bidirectional, multi-line, and cloze deletion
+- **Flexible Output**: Insert at cursor, bottom of note, or separate file
+- **Customizable**: Custom prompts and tags
 
-## First time developing plugins?
+## Installation
 
-Quick starting guide for new plugin devs:
+1. Open Obsidian and go to Settings
+2. Navigate to Community Plugins and disable Safe Mode
+3. Click "Browse" and search for "LLM Flashcard Generator"
+4. Install the plugin and enable it
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Quick Start
 
-## Releasing new releases
+1. **Set up a provider**: Go to Settings > LLM Flashcard Generator and add an LLM provider (OpenAI, Anthropic, or Gemini)
+2. **Test connection**: Use the command "Test LLM provider connection" to verify your setup
+3. **Generate flashcards**: Open a note with educational content and click the brain icon in the ribbon
+4. **Configure options**: Choose your card types, output location, and tags in the modal
+5. **Review results**: Check the generated flashcards and edit if needed
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+## Configuration
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Setting Up LLM Providers
 
-## Adding your plugin to the community plugin list
+1. Go to Settings > LLM Flashcard Generator
+2. Click "Add Provider" and select your preferred LLM service (OpenAI, Anthropic, or Google Gemini)
+3. Enter your API key and configure the endpoint and model
+4. Select your active provider from the dropdown
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Default Settings
 
-## How to use
+- **Output Preferences**: Choose where flashcards are placed by default
+- **Card Types**: Select which types of flashcards to generate
+- **Tags**: Configure default tags for organizing your flashcards
+- **Prompt Templates**: Customize the prompt used for flashcard generation
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## Usage
 
-## Manually installing the plugin
+1. Open a note with educational content
+2. Click the brain icon in the ribbon or use the command "Generate flashcards from current note"
+3. Configure generation options in the modal:
+   - Number of cards to generate (optional)
+   - Card types to include
+   - Output placement
+   - Tags
+4. Click "Generate Flashcards"
+5. Review and study your generated flashcards using the Spaced Repetition plugin
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+## Card Types
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+- **One-way (::)**: Question → Answer format
+- **Bidirectional (:::)**: Term ↔ Definition format (tests in both directions)
+- **Multi-line (?)**: For questions with multi-line answers
+- **Multi-line Bidirectional (???)**: For bidirectional cards with multi-line content
+- **Cloze Deletion (==)**: Fill-in-the-blank format with ==highlighted== text
 
-## Funding URL
+## Requirements
 
-You can include funding URLs where people who use your plugin can financially support it.
+- Obsidian v0.15.0 or higher
+- **Spaced Repetition plugin**: This plugin generates flashcards compatible with the [Spaced Repetition plugin](https://www.stephenmwangi.com/obsidian-spaced-repetition/). Install it from the Community Plugins to study your generated flashcards.
+- An API key for at least one supported LLM provider:
+  - OpenAI (GPT-3.5, GPT-4)
+  - Anthropic (Claude)
+  - Google Gemini
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## Development
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+This plugin was primarily developed with "vibe coding" to rapidly prototype and implement features.
 
-If you have multiple URLs, you can also do:
+## Support
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+If you encounter any issues or have feature requests, please submit them on the [GitHub repository](https://github.com/Tseku210/DeckForge/issues).
 
-## API Documentation
+## License
 
-See https://github.com/obsidianmd/obsidian-api
+This project is licensed under the MIT License - see the LICENSE file for details.
