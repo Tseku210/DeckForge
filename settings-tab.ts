@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Modal, Notice } from 'obsidian';
 import LLMFlashcardGeneratorPlugin from './main';
-import { CardType } from './types';
+import { CardType, ProviderConfig } from './types';
 
 export class FlashcardSettingTab extends PluginSettingTab {
   plugin: LLMFlashcardGeneratorPlugin;
@@ -261,7 +261,7 @@ export class FlashcardSettingTab extends PluginSettingTab {
         textArea.setPlaceholder('Enter your prompt template...');
         textArea.setValue(this.plugin.settings.promptTemplates.default || '');
         textArea.inputEl.rows = 8;
-        textArea.inputEl.style.width = '100%';
+        textArea.inputEl.addClass('custom-textarea');
         textArea.onChange(async (value) => {
           this.plugin.settings.promptTemplates.default = value;
           await this.plugin.saveSettings();
@@ -319,7 +319,7 @@ export class FlashcardSettingTab extends PluginSettingTab {
     modal.open();
   }
 
-  private getDefaultConfigForProvider(providerType: string): any {
+  private getDefaultConfigForProvider(providerType: string): ProviderConfig {
     switch (providerType.toLowerCase()) {
       case 'openai':
         return {
@@ -403,10 +403,6 @@ class AddProviderModal extends Modal {
 
     // Buttons
     const buttonContainer = contentEl.createDiv('modal-button-container');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.justifyContent = 'flex-end';
-    buttonContainer.style.gap = '10px';
-    buttonContainer.style.marginTop = '20px';
 
     const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
     cancelButton.addEventListener('click', () => {

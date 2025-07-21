@@ -42,3 +42,13 @@
   font-size: 0.875em;
   margin-bottom: 1em;
 }
+
+/* Generation modal styles */
+.setting-item-description-toggle {
+  margin-top: -10px;
+  margin-bottom: 15px;
+}
+
+.custom-textarea {
+  width: 100%;
+}

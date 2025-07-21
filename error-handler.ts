@@ -35,7 +35,7 @@ export class ErrorHandler {
     const troubleshooting = this.getAuthenticationTroubleshooting(provider);
 
     new Notice(`${message}\n\n${troubleshooting}`, 10000);
-    console.error('Authentication Error:', error);
+    this.logError(error, `Authentication Error - ${provider}`);
   }
 
   /**
@@ -46,7 +46,7 @@ export class ErrorHandler {
     const troubleshooting = this.getNetworkTroubleshooting(provider);
 
     new Notice(`${message}\n\n${troubleshooting}`, 8000);
-    console.error('Network Error:', error);
+    this.logError(error, `Network Error - ${provider}`);
   }
 
   /**
@@ -57,7 +57,7 @@ export class ErrorHandler {
     const troubleshooting = this.getInvalidResponseTroubleshooting(provider);
 
     new Notice(`${message}\n\n${troubleshooting}`, 8000);
-    console.error('Invalid Response Error:', error);
+    this.logError(error, `Invalid Response Error - ${provider}`);
   }
 
   /**
@@ -68,7 +68,7 @@ export class ErrorHandler {
     const troubleshooting = this.getGeneralTroubleshooting();
 
     new Notice(`${message}\n\n${troubleshooting}`, 8000);
-    console.error('Unknown Error:', error);
+    this.logError(error, `Unknown Error - ${provider}`);
   }
 
   /**
@@ -164,7 +164,7 @@ export class ErrorHandler {
   /**
    * Get invalid response troubleshooting guidance
    */
-  private static getInvalidResponseTroubleshooting(provider: string): string {
+  private static getInvalidResponseTroubleshooting(_provider: string): string {
     return `Troubleshooting steps:
 • Try reducing the number of flashcards requested
 • Simplify your custom prompt if using one
@@ -328,7 +328,7 @@ export class ErrorHandler {
   /**
    * Create a standardized error object
    */
-  static createError(type: LLMError['type'], message: string, details?: any): LLMError {
+  static createError(type: LLMError['type'], message: string, details?: unknown): LLMError {
     return {
       type,
       message,
@@ -339,14 +339,20 @@ export class ErrorHandler {
   /**
    * Log error with context for debugging
    */
-  static logError(error: any, context: string, additionalInfo?: any): void {
-    console.group(`🚨 LLM Flashcard Generator Error - ${context}`);
-    console.error('Error:', error);
-    if (additionalInfo) {
-      console.log('Additional Info:', additionalInfo);
+  static logError(error: unknown, context: string, additionalInfo?: unknown): void {
+    // Only log detailed errors in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.group(`🚨 LLM Flashcard Generator Error - ${context}`);
+      console.error('Error:', error);
+      if (additionalInfo) {
+        console.log('Additional Info:', additionalInfo);
+      }
+      console.trace('Stack trace');
+      console.groupEnd();
+    } else {
+      // In production, just log the basic error
+      console.error(`LLM Flashcard Generator Error - ${context}:`, (error as Error).message || error);
     }
-    console.trace('Stack trace');
-    console.groupEnd();
   }
 
   /**
@@ -402,5 +408,5 @@ export interface ErrorContext {
   component: string;
   operation: string;
   provider?: string;
-  additionalInfo?: any;
+  additionalInfo?: unknown;
 }

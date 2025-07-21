@@ -14,9 +14,7 @@ export interface GenerationModalOptions {
 
 export class GenerationOptionsModal extends Modal {
   private onSubmit: (options: GenerationModalOptions) => void;
-  private defaultOptions: GenerationOptions;
-  private defaultPlacement: 'cursor' | 'bottom' | 'separate-file';
-  private defaultTags: string[];
+
 
   // Form state
   private maxCards?: number;
@@ -25,7 +23,7 @@ export class GenerationOptionsModal extends Modal {
   private customPrompt: string = '';
   private selectedTags: string[] = [];
   private selectedPlacement: 'cursor' | 'bottom' | 'separate-file' = 'cursor';
-  private customTagsInput: string = '';
+
 
   constructor(
     app: App,
@@ -36,9 +34,6 @@ export class GenerationOptionsModal extends Modal {
   ) {
     super(app);
     this.onSubmit = onSubmit;
-    this.defaultOptions = defaultOptions;
-    this.defaultPlacement = defaultPlacement;
-    this.defaultTags = defaultTags;
 
     // Initialize form state with defaults
     this.maxCards = defaultOptions.maxCards;
@@ -83,9 +78,7 @@ export class GenerationOptionsModal extends Modal {
       });
 
     // Add description for the toggle
-    const toggleDesc = contentEl.createDiv('setting-item-description');
-    toggleDesc.style.marginTop = '-10px';
-    toggleDesc.style.marginBottom = '15px';
+    const toggleDesc = contentEl.createDiv('setting-item-description setting-item-description-toggle');
     toggleDesc.textContent = this.useAutoCards ?
       '✨ AI will decide the optimal number of cards' :
       '🎯 You control the maximum number of cards';
@@ -163,7 +156,6 @@ export class GenerationOptionsModal extends Modal {
         text.setPlaceholder('#flashcards, #biology, #chapter1');
         text.setValue(currentTags);
         text.onChange((value) => {
-          this.customTagsInput = value;
           // Parse tags and ensure '#' prefix
           this.selectedTags = value
             .split(',')
@@ -189,15 +181,11 @@ export class GenerationOptionsModal extends Modal {
         });
         // Make textarea larger
         text.inputEl.rows = 4;
-        text.inputEl.style.width = '100%';
+        text.inputEl.addClass('custom-textarea');
       });
 
     // Buttons
     const buttonContainer = contentEl.createDiv('modal-button-container');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.justifyContent = 'flex-end';
-    buttonContainer.style.gap = '10px';
-    buttonContainer.style.marginTop = '20px';
 
     const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
     cancelButton.addEventListener('click', () => {

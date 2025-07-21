@@ -176,7 +176,7 @@ export interface FlashcardPluginSettings {
 export interface LLMError {
   type: 'authentication' | 'network' | 'invalid_response' | 'unknown';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Default Settings

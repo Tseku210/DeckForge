@@ -57,7 +57,6 @@ export class FileManager {
           };
       }
     } catch (error) {
-      console.error('Error placing flashcards:', error);
       return {
         success: false,
         error: `Failed to place flashcards: ${error.message}`
@@ -129,7 +128,7 @@ export class FileManager {
   async insertAtBottom(
     formattedContent: string,
     editor?: Editor,
-    view?: MarkdownView
+    _view?: MarkdownView
   ): Promise<InsertionResult> {
     if (!editor) {
       return {
@@ -385,9 +384,9 @@ export class FileManager {
       const flashcardFilePath = this.getFlashcardFilePath(sourceFile, flashcardFileName);
 
       // Get existing file
-      const existingFile = this.app.vault.getAbstractFileByPath(flashcardFilePath) as TFile;
-      if (!existingFile) {
-        throw new Error('File exists but cannot be found');
+      const existingFile = this.app.vault.getAbstractFileByPath(flashcardFilePath);
+      if (!(existingFile instanceof TFile)) {
+        throw new Error('File exists but is not a markdown file');
       }
 
       // Read existing content
